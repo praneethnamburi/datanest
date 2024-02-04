@@ -281,13 +281,13 @@ class Database:
     #     return pn.Mapping(self.get_df())(left_col_name, right_col_name, row_selector)
 
 
-def get_example_database() -> Database:
+def get_example_database(has_data_field=False) -> Database:
     """Generate an example database.
 
     Returns:
         Database
     """
-    # code generated with chat-GPT 3.5
+    # code generated with chat-GPT 3.5, then modified
     # Set seed for reproducibility
     np.random.seed(42)
 
@@ -295,7 +295,16 @@ def get_example_database() -> Database:
     participant_ids = np.arange(1, 101)
     ages = np.random.uniform(20, 80, size=100)
     surgery_performed = np.random.choice([True, False], size=100)
-    notes = ["Lorem ipsum dolor sit amet" for _ in range(100)]
+    notes_choice = (
+        "",
+        "",
+        "",
+        "",
+        "HRV is interesting",
+        "QRS complex is interesting",
+        "review data",
+    )
+    notes = np.random.choice(notes_choice, size=100)
 
     # Create DataFrame
     data = pd.DataFrame(
@@ -306,4 +315,42 @@ def get_example_database() -> Database:
             "notes": notes,
         }
     )
-    return Database(data)
+    ret = Database(data)
+    if has_data_field:
+        ret.add_data_field("heart_rate", get_example_data(), "participant_id")
+    return ret
+
+
+def get_example_data() -> MutableMapping[int, Any]:
+    """Get example data for adding to a data field.
+
+    Example:
+        ::
+        
+            db = datanest.get_example_database()
+            db.add_data_field('heart_rate', datanest.get_example_data(), 'participant_id')
+            db.heart_rate(age_lim=(40,50), surgery_performed=False)
+
+    Returns:
+        MutableMapping[int, Any]: Fake time and heart rate values encapsulated in a python object
+    """
+    np.random.seed(42)
+    participant_ids = np.arange(1, 101)
+    hr_means = np.random.uniform(50, 120, size=100)
+    hr_variances = np.random.uniform(5, 40, size=100)
+
+    class HRData:
+        def __init__(self, time, hr):
+            assert len(time) == len(hr)
+            self.time = time
+            self.hr = hr
+
+    ret = {}
+    time_minutes = np.arange(1, 201)
+    for participant_id, hr_mean, hr_variance in zip(
+        participant_ids, hr_means, hr_variances
+    ):
+        hr_values = np.random.randn(200) * hr_variance + hr_mean
+        ret[participant_id] = HRData(time_minutes, hr_values)
+
+    return ret
