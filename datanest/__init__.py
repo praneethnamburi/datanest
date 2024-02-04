@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Union, MutableMapping, Hashable, Any
 
@@ -101,7 +102,10 @@ class Database:
                 db(age_lim=(40,60)) 
                 # Returns rows of participants between ages 40 and 60 who have had surgery
                 db(age_lim=(40,60), surgery_performed=True) 
-        """        
+        """
+        def removesuffix(s, suffix): # for python 3.7 and 3.8
+            return re.sub(f'\{suffix}$', '', s)
+        
         df = self.get_df()
         sel = []
         for k in args:
@@ -109,19 +113,19 @@ class Database:
                 sel.append( df[k] )
 
         for k, v in kwargs.items():
-            if k.endswith('_lim') and (k.removesuffix('_lim') in df):
+            if k.endswith('_lim') and (removesuffix(k, '_lim') in df):
                 assert len(v) == 2
-                tk = k.removesuffix('_lim')
+                tk = removesuffix(k, '_lim')
                 sel.append(df[tk] >= v[0])
                 sel.append(df[tk] <= v[1])
-            elif k.endswith('_any') and (k.removesuffix('_any') in df):
-                tk = k.removesuffix('_any')
+            elif k.endswith('_any') and (removesuffix(k, '_any') in df):
+                tk = removesuffix(k, '_any')
                 this_sel = []
                 for this_val in v:
                     this_sel.append(df[tk] == this_val)
                 sel.append(pd.Series(np.logical_or.reduce(this_sel)))
-            elif k.endswith('_has') and (k.removesuffix('_has') in df): # e.g. notes_has='eyes closed'
-                tk = k.removesuffix('_has')
+            elif k.endswith('_has') and (removesuffix(k, '_has') in df): # e.g. notes_has='eyes closed'
+                tk = removesuffix(k, '_has')
                 sel.append( [v in x for x in df[tk].values] )
             if k in df:
                 sel.append( (df[k] == v) )
