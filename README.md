@@ -5,7 +5,13 @@
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/praneethnamburi/datanest/main/LICENSE)
 [![Documentation Status](https://readthedocs.org/projects/datanest/badge/?version=latest)](https://datanest.readthedocs.io)
 
-Encapsulate pandas DataFrame and arbitratry python objects, such as time series data.
+
+*A simple, intuitive, pandas-based database.*
+
+Perfect for handling data such as time series, images, or any
+Python objects alongside their metadata. This tool encapsulates a pandas
+DataFrame containing metadata and Python objects. It provides an intuitive
+data and metadata retrieval syntax through keyword-arguments.
 
 -----
 

@@ -1,8 +1,14 @@
-"""Encapsulate pandas DataFrame and arbitrary python objects.
+"""A simple, intuitive, pandas-based database.
 
-:py:class:`Database` class initializes a Database that encapsulates a pandas DataFrame containing metadata, and data such as time series or images.
-:py:meth:`Database.add_data_field` is used to add a new dictionary mapping a metadata column in the DataFrame to arbitrary python objects.
-:py:meth:`Database.__call__` is used to retrieve metadata based on criteria that can be specified in a python keyword arguments format.
+Perfect for handling data such as time series, images, or any
+Python objects alongside their metadata. This tool encapsulates a pandas
+DataFrame containing metadata and Python objects. It provides an intuitive
+data and metadata retrieval syntax through keyword-arguments.
+
+The :py:class:`Database` class initializes a database with a pandas DataFrame containing metadata and various data types such as time series or images.
+Use :py:meth:`Database.add_data_field` to incorporate a new dictionary mapping metadata columns in the DataFrame to arbitrary Python objects.
+Utilize :py:meth:`Database.__call__` for metadata retrieval, specifying criteria in Python keyword arguments."
+
 """
 # SPDX-FileCopyrightText: 2024-present Praneeth Namburi <praneeth.namburi@gmail.com>
 #
