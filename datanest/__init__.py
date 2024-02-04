@@ -13,7 +13,7 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import Union, MutableMapping, Hashable, Any
+from typing import Any, Hashable, MutableMapping, Union
 
 import numpy as np
 import pandas as pd
@@ -31,7 +31,7 @@ class Database:
     It was developed to address performance issues when storing arbitrary data objects, including NumPy arrays, in a pandas DataFrame.
 
     Args:
-        data (Union[pd.DataFrame, str]):
+        data (Union[pd.DataFrame, str, Path]):
             - (str) Path to a CSV or Excel file. It is read as a pandas DataFrame.
             - (pd.DataFrame) Pass an already loaded pandas DataFrame.
 
@@ -58,16 +58,14 @@ class Database:
             db.heart_rate(notes_has='interesting')
     """
 
-    def __init__(self, data: Union[pd.DataFrame, str] = None):
-        if data is None:
-            self._data = pd.DataFrame()
-        elif isinstance(data, pd.DataFrame):
+    def __init__(self, data: Union[pd.DataFrame, str, Path]):
+        if isinstance(data, pd.DataFrame):
             self._data = data
-        elif isinstance(data, str):
-            fname = data
+        elif isinstance(data, (str, Path)):
+            fname = Path(data)
             assert os.path.exists(fname)
-            assert Path(fname).suffix in (".xls", ".xlsx", ".csv")
-            if Path(fname).suffix == ".csv":
+            assert fname.suffix in (".xls", ".xlsx", ".csv")
+            if fname.suffix == ".csv":
                 loader = pd.read_csv
             else:
                 loader = pd.read_excel
@@ -182,34 +180,46 @@ class Database:
                 # OR, use the shorter version
                 db.get('ot', cadence=160, speedp=100)
         """
-        assert ret_type in (list, dict)
         if not hasattr(self, f"_{data_field_name}"):
             print(
-                f"Data not loaded into memory. Use db.add_data_field({data_field_name}, data) to add the {data_field_name} data field."
+                f"{data_field_name} not found. Use db.add_data_field({data_field_name}, data)."
             )
             return
+
         if not getattr(self, f"_{data_field_name}"):  # if it is empty
             print(f"db._{data_field_name} is empty. Nothing to return.")
             return
+
+        if isinstance(hdr, str):
+            args = list(args) + [hdr]
+            hdr = None  # revert to default
+
+        if isinstance(ret_type, str):
+            args = list(args) + [ret_type]
+            ret_type = list  # revert to default
+        assert ret_type in (list, dict)
+
+        if isinstance(isolate_single, str):
+            args = list(args) + [isolate_single]
+            isolate_single = False  # revert to default
+
         if hdr is None:
             hdr = self(*args, **kwargs)
-        elif isinstance(hdr, (list, tuple)):
-            assert len(hdr) == 2
-            hdr = self(id=hdr)
+
+        field_data = getattr(self, f"_{data_field_name}")
         if ret_type == list:
-            data = [
-                getattr(self, f"_{data_field_name}")[k] for k in hdr[id_column_name]
-            ]
+            data = [field_data[k] for k in hdr[id_column_name] if k in field_data]
+            if len(data) != len(hdr[id_column_name]):
+                print(
+                    f"WARNING: Missing values in {data_field_name}, use ret_type=dict to reduce errors."
+                )
             if isolate_single and len(data) == 1:
                 data = data[0]
         else:  # dictionary is more error-tolerant - returns data files only when they are present in that trial
-            data = {
-                k: getattr(self, f"_{data_field_name}")[k]
-                for k in hdr[id_column_name]
-                if k in getattr(self, f"_{data_field_name}")
-            }
+            data = {k: field_data[k] for k in hdr[id_column_name] if k in field_data}
             if isolate_single and len(data) == 1:
                 data = list(data.values())[0]
+
         return data
 
     def add_data_field(self, name: str, data: dict, data_key_name: str = "id"):
@@ -228,7 +238,7 @@ class Database:
             See :py:meth:`Database.__call__` to learn more about query construction.
 
         Args:
-            name (str): Name of the data field (e.g. heart_rate).
+            name (str): Name of the data field (e.g. heart_rate). Should not be present in the database, and it should not be 'records'
             data (dict): _description_
             data_key_name (str, optional): _description_. Defaults to 'id'.
         """
@@ -238,11 +248,11 @@ class Database:
         setattr(
             self,
             name,
-            lambda hdr=None, *args, **kwargs: self.get(
+            lambda hdr=None, ret_type=dict, isolate_single=True, *args, **kwargs: self.get(
                 data_field_name=name,
                 hdr=hdr,
-                ret_type=dict,
-                isolate_single=True,
+                ret_type=ret_type,
+                isolate_single=isolate_single,
                 id_column_name=data_key_name,
                 *args,
                 **kwargs,
@@ -263,10 +273,16 @@ class Database:
         Returns:
             list[MutableMapping[Hashable, Any]]
         """
+        if isinstance(hdr, str):
+            args = list(args) + [hdr]
+            hdr = None  # revert to default
+
         if hdr is None:
             hdr = self(*args, **kwargs).to_dict(orient="records")
+
         if isinstance(hdr, pd.DataFrame):
             hdr = hdr.to_dict(orient="records")
+
         for rec in hdr:
             for mod, data_key_name in self.data_key_names.items():
                 this_modality_data = getattr(self, f"_{mod}")
@@ -277,7 +293,7 @@ class Database:
         return hdr
 
 
-def get_example_database(has_data_field=False) -> Database:
+def get_example_database() -> Database:
     """Generate an example database.
 
     Returns:
@@ -291,15 +307,11 @@ def get_example_database(has_data_field=False) -> Database:
     participant_ids = np.arange(1, 101)
     ages = np.random.uniform(20, 80, size=100)
     surgery_performed = np.random.choice([True, False], size=100)
-    notes_choice = (
-        "",
-        "",
-        "",
-        "",
+    notes_choice = [""] * 4 + [
         "HRV is interesting",
         "QRS complex is interesting",
         "review data",
-    )
+    ]
     notes = np.random.choice(notes_choice, size=100)
 
     # Create DataFrame
@@ -312,8 +324,6 @@ def get_example_database(has_data_field=False) -> Database:
         }
     )
     ret = Database(data)
-    if has_data_field:
-        ret.add_data_field("heart_rate", get_example_data(), "participant_id")
     return ret
 
 
@@ -322,7 +332,7 @@ def get_example_data() -> MutableMapping[int, Any]:
 
     Example:
         ::
-        
+
             db = datanest.get_example_database()
             db.add_data_field('heart_rate', datanest.get_example_data(), 'participant_id')
             db.heart_rate(age_lim=(40,50), surgery_performed=False)
@@ -348,5 +358,8 @@ def get_example_data() -> MutableMapping[int, Any]:
     ):
         hr_values = np.random.randn(200) * hr_variance + hr_mean
         ret[participant_id] = HRData(time_minutes, hr_values)
+
+    # create a missing entry for participant 23
+    del ret[23]
 
     return ret
