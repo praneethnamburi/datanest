@@ -1,0 +1,7 @@
+name: build-project
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - numpy
+  - pandas
