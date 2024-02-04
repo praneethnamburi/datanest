@@ -18,7 +18,7 @@ from typing import Any, Hashable, MutableMapping, Union
 import numpy as np
 import pandas as pd
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __all__ = ["Database"]
 
 
@@ -32,7 +32,7 @@ class Database:
 
     Args:
         data (Union[pd.DataFrame, str, Path]):
-            - (str) Path to a CSV or Excel file. It is read as a pandas DataFrame.
+            - (str) Path to a CSV or Excel file. It is read as a pandas DataFrame. Make sure openpyxl is installed when working with excel files.
             - (pd.DataFrame) Pass an already loaded pandas DataFrame.
 
     Attributes:

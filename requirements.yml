@@ -5,4 +5,4 @@ channels:
 dependencies:
   - numpy
   - pandas
-  - openpyxl # for testing only
+  - openpyxl # for working with excel files
