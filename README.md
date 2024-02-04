@@ -1,10 +1,9 @@
 # datanest
 
-[![PyPI - Version](https://img.shields.io/pypi/v/datanest.svg)](https://pypi.org/project/datanest)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/datanest.svg)](https://pypi.org/project/datanest)
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/praneethnamburi/datanest/main/LICENSE)
+[![src](https://img.shields.io/badge/src-github-blue)](https://github.com/praneethnamburi/datanest)
+[![PyPI - Version](https://img.shields.io/pypi/v/datanest.svg?logo=pypi&label=PyPI&logoColor=gold)](https://pypi.org/project/datanest/)
 [![Documentation Status](https://readthedocs.org/projects/datanest/badge/?version=latest)](https://datanest.readthedocs.io)
-
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/praneethnamburi/datanest/main/LICENSE)
 
 *A simple, intuitive, pandas-based database.*
 
