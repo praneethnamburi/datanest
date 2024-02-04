@@ -276,10 +276,6 @@ class Database:
                     rec[mod] = None
         return hdr
 
-    # def get_mapping(self, left_col_name:str, right_col_name:str, row_selector=None) -> dict:
-    #     """Get a mapping between two columns of the dataframe as a dictionary."""
-    #     return pn.Mapping(self.get_df())(left_col_name, right_col_name, row_selector)
-
 
 def get_example_database(has_data_field=False) -> Database:
     """Generate an example database.
