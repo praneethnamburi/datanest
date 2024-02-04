@@ -6,10 +6,10 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'datanest'
-copyright = '2024, Praneeth Namburi'
-author = 'Praneeth Namburi'
-release = '0.1.0'
+project = "datanest"
+copyright = "2024, Praneeth Namburi"
+author = "Praneeth Namburi"
+release = "0.1.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -36,9 +36,7 @@ html_theme_options = {
 html_static_path = []
 
 autodoc_member_order = "bysource"
-autodoc_default_options = {
-    'ignore-module-all': True
-}
+autodoc_default_options = {"ignore-module-all": True}
 napoleon_use_ivar = True
 
 from sphinx.ext.autodoc import between
