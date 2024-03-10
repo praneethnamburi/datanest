@@ -76,6 +76,8 @@ class Database:
             else:
                 loader = pd.read_excel
             self._data = loader(fname)
+        else:
+            raise TypeError
 
         self.data_fields = []
         self.data_key_names = {}
