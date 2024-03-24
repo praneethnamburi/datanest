@@ -18,8 +18,9 @@ from __future__ import annotations
 
 import os
 import re
+import functools
 from pathlib import Path
-from typing import Any, Hashable, MutableMapping, Union
+from typing import Any, Hashable, MutableMapping, Union, Callable
 
 import numpy as np
 import pandas as pd
@@ -299,6 +300,209 @@ class Database:
                 else:
                     rec[mod] = None
         return hdr
+
+
+class DatabaseContainer:
+    """Build hierarchical relationships between databases to enable flexible data retrieval based on metadata stored at multiple levels.
+    Attributes:
+        _db (dict) - database_name (str) : database (Database)
+        _parents (dict) - stores the relationships between databases. It is a mapping from database_name : parent_name
+        
+    Example:
+        dbc = DatabaseContainer()
+        dbc.add("subject", subject_db) # add the top level database first
+        dbc.add("trial", trial_db, "subject", lambda trial_id: trial_id[:2]) # last argument is a function that converts trial_id to subject_id
+    
+    Each database has columns (metadata) and data_fields.
+    Each database is identified by a name <db_name>, and must have a column <db_name>_id 
+        (e.g. a database with name trial must have a column called trial_id)
+    Within each container, there can only be one top-level database, and this should be added first.
+    Each parent database can have multiple child databases, and each child in turn can be a parent to other databases.
+
+    TODO: 
+        Make a plan for column names that conflict with special cases of keywords, i.e. <column_name>_lim / _has / _any.
+    """
+    def __init__(self) -> None:
+        self._parents = {}
+        self._db = {}
+    
+    @property
+    def _db_names(self) -> list:
+        return list(self._db.keys())
+    
+    def get_cols(self, db_name: str) -> list:
+        """List of columns in a database by name db_name."""
+        assert db_name in self._db
+        return self._db[db_name]().columns.tolist()
+    
+    @property
+    def _column_name_to_level_map(self) -> dict:
+        ret = {}
+        for db_name in self._db:
+            for col_name in self.get_cols(db_name):
+                if col_name in [x+'_id' for x in self._db]: # special cases of 'subject_id', 'trial_id', 'action_id' where the same column can be present in multiple databases
+                    ret[col_name] = col_name.removesuffix('_id')
+                else:
+                    ret[col_name] = db_name
+        return ret
+    
+    @property
+    def _db_level(self) -> dict:
+        """Mapping between database name and number of ancestors (level number).
+        Top-level is 0.
+        """
+        return {name: len(self.get_heritage(name)) for name in self._db}
+    
+    def get_heritage(self, db_name):
+        """Return parent, grandparent, ... 
+        For example, 
+            "trial" -> ["subject"]
+            "action" -> ["trial", "subject"]
+        """
+        assert db_name in self._parents
+        ret = []
+        current_parent = self._parents[db_name]
+        while current_parent is not None:
+            ret.append(current_parent)
+            current_parent = self._parents[current_parent]
+        return ret
+
+    def add(self, child_name: str, db: Database, parent_name: str=None, child_to_parent_id: Callable=None):
+        """Add a database to the container.
+
+        Args:
+            child_name (str): Name of the database inside the container. Use a singular word, e.g. "trial" instead of "trials"
+            db (Database): The database to be added to the container.
+            parent_name (str): Name of the parent in the container. Set this to None for the top level database (default).
+            child_to_parent_id (Callable): A function that maps a row in the child to that in a parent. 
+                For example, if subject_id = (1,1), and trial_id = (1, 1, 4), 
+                child_to_parent_id = lambda trial_id: trial_id[:2]
+
+        TODO: Check of overlapping column names, and rename columns to {db_name}_column for conflicting columns
+        """
+        assert child_name not in self._db
+        assert f"{child_name}_id" in db().columns # A trial database MUST have trial_id
+
+        if parent_name is not None:
+            assert parent_name in self._parents
+            assert parent_name in self._db
+            assert child_to_parent_id is not None
+        else:
+            assert len(self._db) == 0 # only one top level database 
+        
+        self._db[child_name] = db
+        self._parents[child_name] = parent_name
+        
+        # add the column that maps every row in the child dataframe to a row in the parent dataframe
+        for current_parent in self.get_heritage(child_name):
+            child_df = db()
+            child_df[f"{current_parent}_id"] = child_df[f"{child_name}_id"].apply(child_to_parent_id)
+
+    def get_db_name(self, attr_name):
+        """Retrieve the database name of an attribute (a column name in one of the databases in this container)"""
+        assert attr_name in self._column_name_to_level_map
+        return self._column_name_to_level_map[attr_name]
+
+    def all_data_fields(self): # e.g. 'ot', 'delsys', etc., added through immersionlab.Database.add_data_field()
+        return [item for x in self._db_name_to_data_field_map().values() for item in x]
+    
+    def _db_name_to_data_field_map(self):
+        return {db_name:db.data_fields for db_name, db in self._db.items()}
+    
+    @property
+    def _data_field_to_level_map(self):
+        """Return the highest level of a given data field"""
+        ret = {}
+        for level, db in self._db.items():
+            for data_field in db.data_fields:
+                if data_field not in ret:
+                    ret[data_field] = level
+        return ret
+    
+    def get_modality_level(self, modality):
+        assert modality in self.all_data_fields()
+        return self._data_field_to_level_map[modality]
+    
+    def __getattr__(self, attr_name):
+        if attr_name.removesuffix("s") in self._db:
+            return self._db[attr_name.removesuffix("s")]
+
+        if attr_name in self.all_data_fields(): # for doing dbc.ot('expert') instead of dbc('expert', modality='ot')
+            return functools.partial(self.__call__, modality=attr_name)
+        
+        return self._db[self.get_db_name(attr_name)]()[attr_name]
+    
+    def get_attribute_at_level(self, attr_name, level=None):
+        """Get an attribute at a specified level (e.g. get experiments at the level of the action)"""
+        attr_level = self.get_db_name(attr_name)
+        attr = self.__getattr__(attr_name)
+        if level is None: # default behavior
+            return attr
+        assert level in self._db
+        assert self._db_level[attr_level] < self._db_level[level] # for example, to get experiment (attr_level_idx) at the level of trial (level)
+        out_level_id = self._db[level]()[f'{attr_level}_id'] # self.trials()['subject_id']
+        return out_level_id.map(attr.to_dict())
+    
+    def help(self, key=None):
+        if key is None:
+            for db_name in self._db:
+                print(f"Query params at db_name={db_name}")
+                print([x for x in self.get_cols(db_name) if not (x.endswith('_id') or x == 'id')])
+                print()
+            print("These are the data fields (modalities) present at each level: ")
+            print(self._db_name_to_data_field_map())
+            return
+        if isinstance(key, str) and key in self._column_name_to_level_map:
+            print(f"{key} is an attribute at the {self.get_db_name(key)} level.")
+            print(f"Unique values of {key} are:")
+            print(np.unique(list(getattr(self, key))))
+
+    def __call__(self, *args, **kwargs):
+        """
+        Generalize data search and retrieval across databases created at different levels - e.g. subject, trial, action
+        create a temporary database to execute a search from attributes across multiple levels
+
+        See docstring for the class for examples
+        """
+        level = kwargs.pop('level', None) # in database names
+        modality = kwargs.pop('modality', None) # in data fields
+        return_records = kwargs.pop('return_records', False)
+
+        level_num = 0
+        if level is not None:
+            assert level in self._db # also asserts if level is a string
+            level_num = self._db_level[level]
+
+        modality_level_num = 0
+        if modality is not None:
+            assert isinstance(modality, str)
+            modality_level_num = self._db_level[self.get_modality_level(modality)]
+
+        attrs_list = [x.removesuffix('_lim').removesuffix('_any').removesuffix('_has') for x in list(args) + list(kwargs.keys())]
+        attrs_level_num = [self._db_level[self._column_name_to_level_map[attr]] for attr in attrs_list]
+        
+        query_level_num = max(level_num, *attrs_level_num, modality_level_num)
+        
+        query_level_name = self._db_names[query_level_num]
+        query_level_db = self._db[query_level_name]
+        df = query_level_db().copy(deep=False)
+        for attr, attr_level_num in zip(attrs_list, attrs_level_num):
+            if attr_level_num < query_level_num:
+                df[attr] = self.get_attribute_at_level(attr, level=self._db_names[query_level_num])
+        db = Database(df)
+        df_queried = db(*args, **kwargs)
+        
+        if return_records:
+            return query_level_db.records(hdr=df_queried)
+    
+        if modality is None:
+            return df_queried
+        
+        assert modality in query_level_db.data_fields
+        return query_level_db.get(data_field_name=modality, hdr=df_queried, ret_type=dict, isolate_single=True, id_column_name=f'{query_level_name}_id')
+    
+    def records(self, *args, **kwargs):
+        return self.__call__(*args, **kwargs, return_records=True)
 
 
 def get_example_database() -> Database:
