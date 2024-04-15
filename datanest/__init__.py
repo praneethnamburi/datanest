@@ -119,21 +119,21 @@ class Database:
                 sel.append(df[k])
 
         for k, v in kwargs.items():
-            if k.endswith("_lim") and (removesuffix(k, "_lim") in df):
+            if k.endswith("_lim") and (_removesuffix(k, "_lim") in df):
                 assert len(v) == 2
-                tk = removesuffix(k, "_lim")
+                tk = _removesuffix(k, "_lim")
                 sel.append(df[tk] >= v[0])
                 sel.append(df[tk] <= v[1])
-            elif k.endswith("_any") and (removesuffix(k, "_any") in df):
-                tk = removesuffix(k, "_any")
+            elif k.endswith("_any") and (_removesuffix(k, "_any") in df):
+                tk = _removesuffix(k, "_any")
                 this_sel = []
                 for this_val in v:
                     this_sel.append(df[tk] == this_val)
                 sel.append(pd.Series(np.logical_or.reduce(this_sel)))
             elif k.endswith("_has") and (
-                removesuffix(k, "_has") in df
+                _removesuffix(k, "_has") in df
             ):  # e.g. notes_has='eyes closed'
-                tk = removesuffix(k, "_has")
+                tk = _removesuffix(k, "_has")
                 sel.append([v in x for x in df[tk].values])
             if k in df:
                 sel.append((df[k] == v))
@@ -349,7 +349,7 @@ class DatabaseContainer:
                 if col_name in [
                     x + "_id" for x in self._db
                 ]:  # special cases of 'subject_id', 'trial_id', 'action_id' where the same column can be present in multiple databases
-                    ret[col_name] = removesuffix(col_name, "_id")
+                    ret[col_name] = _removesuffix(col_name, "_id")
                 else:
                     ret[col_name] = db_name
         return ret
@@ -557,10 +557,18 @@ class DatabaseContainer:
                 self.get_db_name_of_data_field(data_field)
             ]
 
-        column_list = [
-            x.removesuffix("_lim").removesuffix("_any").removesuffix("_has")
-            for x in list(args) + list(kwargs.keys())
-        ]
+        column_list = []
+        all_column_names_modified = {
+            item: c
+            for c in self.all_column_names
+            for item in (c + "_lim", c + "_has", c + "_any")
+        }
+        for inp in list(args) + list(kwargs.keys()):
+            if inp in self.all_column_names:
+                column_list.append(inp)
+            elif inp in all_column_names_modified:
+                column_list.append(all_column_names_modified[inp])
+
         column_level_list = [
             self._db_level[self._column_name_to_db_name[col]] for col in column_list
         ]
@@ -575,6 +583,7 @@ class DatabaseContainer:
                 df[column_name] = self._cast_column_to_db(
                     column_name, db_name=self.all_db_names[query_level_num]
                 )
+        
         db = Database(df)
         df_queried = db(*args, **kwargs)
 
@@ -597,18 +606,24 @@ class DatabaseContainer:
         return self.__call__(*args, **kwargs, return_records=True)
 
 
-def removesuffix(s: str, suffix: str) -> str:
+def _removesuffix(s: str, suffix: Union[str, list]) -> str:
     """Remove specified suffix in a string s.
     For python 3.7 and 3.8 compatibility.
+    Note that this works for use cases in this module,
+    and not in generally for all strings and suffixes.
 
     Args:
         s (str): e.g. "trial_lim"
-        suffix (str): e.g. "lim"
+        suffix (str): e.g. "_lim"
 
     Returns:
         str: e.g. "trial"
     """
-    return re.sub(f"\{suffix}$", "", s)
+    if isinstance(suffix, str):
+        suffix = [suffix]
+    return functools.reduce(
+        lambda ts, tsuffix: re.sub(f"\{tsuffix}$", "", ts), [s] + suffix
+    )
 
 
 def get_example_database() -> Database:
