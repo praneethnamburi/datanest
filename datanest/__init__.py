@@ -289,12 +289,12 @@ class Database:
             hdr = hdr.to_dict(orient="records")
 
         for rec in hdr:
-            for mod, data_key_name in self.data_key_names.items():
-                this_modality_data = getattr(self, f"_{mod}")
-                if rec[data_key_name] in this_modality_data:
-                    rec[mod] = this_modality_data[rec[data_key_name]]
+            for data_field_name, data_key_name in self.data_key_names.items():
+                this_field_data = getattr(self, f"_{data_field_name}")
+                if rec[data_key_name] in this_field_data:
+                    rec[data_field_name] = this_field_data[rec[data_key_name]]
                 else:
-                    rec[mod] = None
+                    rec[data_field_name] = None
         return hdr
 
 
@@ -476,8 +476,8 @@ class DatabaseContainer:
             Callable | Database | pd.Series: Callable for data_field, Database for db_name, and pd.Series for column_name
         """
         if key in self.all_data_fields:
-            # for doing dbc.ot('expert') instead of dbc('expert', modality='ot')
-            return functools.partial(self.__call__, modality=key)
+            # for doing dbc.ot('expert') instead of dbc('expert', data_field='ot')
+            return functools.partial(self.__call__, data_field=key)
 
         if key in self._db:
             return self._db[key]
