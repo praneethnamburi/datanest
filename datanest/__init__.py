@@ -158,7 +158,6 @@ class Database:
         hdr: pd.DataFrame = None,
         ret_type=list,
         isolate_single: bool = False,
-        id_column_name: str = "id",
         *args,
         **kwargs,
     ) -> Union[list, dict, Any]:
@@ -172,7 +171,6 @@ class Database:
             ret_type (type, optional): Either `list` or `dict`. For example, the former would return a list of heart rate data,
                 and the latter would return a dictionary of {participant_id: participant_heart_rate_data} for the queried entries. Defaults to list.
             isolate_single (bool, optional): If the query results in only one data entry, then return just that data entry. Defaults to False.
-            id_column_name (str, optional): Column name in the metadata DataFrame used to map the entries in `data_field_name`. Defaults to 'id'.
 
         Returns:
             Union[list, dict, Any]: When `isolate_single` is set to `True`, then return type is Any because any data type can be stored in a data field.
@@ -212,6 +210,7 @@ class Database:
             hdr = self(*args, **kwargs)
 
         field_data = getattr(self, f"_{data_field_name}")
+        id_column_name = self.data_key_names[data_field_name]
         if ret_type == list:
             data = [field_data[k] for k in hdr[id_column_name] if k in field_data]
             if len(data) != len(hdr[id_column_name]):
@@ -258,7 +257,6 @@ class Database:
                 hdr=hdr,
                 ret_type=ret_type,
                 isolate_single=isolate_single,
-                id_column_name=data_key_name,
                 *args,
                 **kwargs,
             ),
@@ -599,7 +597,6 @@ class DatabaseContainer:
             hdr=df_queried,
             ret_type=dict,
             isolate_single=True,
-            id_column_name=f"{query_level_name}_id",
         )
 
     def records(self, *args, **kwargs):
