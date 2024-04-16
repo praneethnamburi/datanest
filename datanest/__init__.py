@@ -394,6 +394,14 @@ class DatabaseContainer:
         Return the level of each database within the container.
         """
         return {name: len(self.get_heritage(name)) for name in self._db}
+    
+    @property
+    def _level_to_db_name(self) -> dict:
+        all_levels = sorted(set(self._db_level.values()))
+        ret = {level: [] for level in all_levels}
+        for db_name in self.all_db_names:
+            ret[self._db_level[db_name]].append(db_name)
+        return ret
 
     def add(
         self,
@@ -449,11 +457,14 @@ class DatabaseContainer:
         self._parents[child_name] = parent_name
 
         # add the column that maps every row in the child dataframe to a row in the parent dataframe
+        previous_parent = None
         for current_parent in self.get_heritage(child_name):
             child_df = db()
-            child_df[f"{current_parent}_id"] = child_df[f"{child_name}_id"].apply(
-                child_to_parent_id
-            )
+            if previous_parent is None:
+                child_df[f"{current_parent}_id"] = child_df[f"{child_name}_id"].apply(child_to_parent_id)
+            else:
+                child_df[f"{current_parent}_id"] = child_df[f"{previous_parent}_id"].map(self._db[previous_parent]()[f"{current_parent}_id"].to_dict())
+            previous_parent = current_parent
 
     def __getattr__(self, key: str) -> Callable | Database | pd.Series:
         """Flexible retrieval. Most useful when working with data fields.
@@ -536,7 +547,7 @@ class DatabaseContainer:
             # Old usage: dbc("expert", level="trial")
             # Recommended usage: dbc("expert", db_name="trial")
             assert isinstance(kwargs["level"], str) and kwargs["level"] in self._db
-            assert db_name not in kwargs
+            assert "db_name" not in kwargs
             kwargs["db_name"] = kwargs.pop("level")
 
         db_name = kwargs.pop("db_name", None)  # in database names
@@ -573,7 +584,21 @@ class DatabaseContainer:
 
         query_level_num = max(db_level, *column_level_list, data_field_level)
 
-        query_level_name = self.all_db_names[query_level_num]
+        if len(self._level_to_db_name[query_level_num]) == 1:
+            query_level_name = self.all_db_names[query_level_num] # doesn't work when there are multiple databases at the same query level
+        else:
+            if db_name is not None:
+                query_level_name = db_name
+            elif data_field is not None: # resolve based on data field
+                query_level_name = self.get_db_name_of_data_field(data_field)
+            elif len(column_list) > 0 and len({self._column_name_to_db_name[col] for col in column_list}) == 1:
+                candidate_db_names = sorted({self._column_name_to_db_name[col] for col in column_list})
+                if len(candidate_db_names) > 1:
+                    print(f"Found multiple candidate databases {candidate_db_names}. Choosing {candidate_db_names[0]}")
+                query_level_name = candidate_db_names[0]
+            else:
+                query_level_name = self.all_db_names[query_level_num] # not sure when I would activate this condition
+       
         query_level_db = self._db[query_level_name]
         df = query_level_db().copy(deep=False)
         for column_name, column_level in zip(column_list, column_level_list):
