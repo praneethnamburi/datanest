@@ -5,4 +5,5 @@ channels:
 dependencies:
   - numpy
   - pandas
+  - dill # for cache_me_if_you_can* decorators
   - openpyxl # for working with excel files

@@ -83,6 +83,31 @@ dbc.heart_rate(age_lim=(50, 60))     # data field added at any level
 
 `DatabaseContainer` uses the same `_lim` / `_has` / `_any` suffix conventions as `Database`. Add data fields to the child databases directly (`trial_db.add_data_field(...)`); the container makes them queryable at any level via `dbc.<field>(...)`.
 
+### Caching expensive computations
+
+`datanest.cache_me_if_you_can` and `cache_me_if_you_can_incremental` are
+dill-backed file-cache decorators. Use them to skip recomputation when
+loading or summarizing data fields is expensive. Both accept an optional
+`suffix` callable that receives the wrapped function's `(*args, **kwargs)`
+and returns a string inserted between the cache file's stem and extension —
+handy for one cache file per input.
+
+```python
+from datanest import cache_me_if_you_can, cache_me_if_you_can_incremental
+
+# One cache file per subject (e.g. heart_rate_s03.pkl)
+@cache_me_if_you_can("heart_rate.pkl", suffix=lambda subject_id: f"_s{subject_id:02d}")
+def load_heart_rate(subject_id):
+    return expensive_load(subject_id)            # runs once per subject_id
+
+# Build up a {trial_id: metrics} dict across many calls, persisting on disk
+@cache_me_if_you_can_incremental("trial_metrics.pkl", return_name="ret", return_default={})
+def summarize_trial(trial_id, ret=None):
+    if trial_id not in ret:
+        ret[trial_id] = compute_metrics(trial_id)
+    return ret
+```
+
 ## License
 
 `datanest` is distributed under the terms of the [MIT license](LICENSE).

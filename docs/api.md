@@ -5,3 +5,8 @@
     :members:
     :special-members: __call__, __getitem__
 ```
+
+```{eval-rst}
+.. automodule:: datanest.cache
+    :members:
+```
