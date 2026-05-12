@@ -63,6 +63,26 @@ db.heart_rate(age_lim=(50, 60))
 db.heart_rate(notes_has='interesting')
 ```
 
+### Hierarchical data: `DatabaseContainer`
+
+When metadata lives at multiple levels (e.g. *subject* → *trial* → *action*), wrap a set of `Database` instances in a `DatabaseContainer`. Each level is added with a key-derivation function that maps a child id to its parent id. The container provides the same keyword-argument query syntax as `Database`, resolving the right level automatically.
+
+```python
+import datanest
+
+dbc = datanest.DatabaseContainer()
+dbc.add("subject", subject_db)
+dbc.add("trial", trial_db, "subject", lambda trial_id: trial_id[:2])
+dbc.add("action", action_db, "trial", lambda action_id: action_id[:3])
+
+# Query at any level — subject metadata filters trials and actions too
+dbc(subject=3)                       # all subject-3 trials/actions
+dbc(action_phase='extension')        # subset of action rows
+dbc.heart_rate(age_lim=(50, 60))     # data field added at any level
+```
+
+`DatabaseContainer` uses the same `_lim` / `_has` / `_any` suffix conventions as `Database`. Add data fields to the child databases directly (`trial_db.add_data_field(...)`); the container makes them queryable at any level via `dbc.<field>(...)`.
+
 ## License
 
 `datanest` is distributed under the terms of the [MIT license](LICENSE).

@@ -1,0 +1,47 @@
+﻿experiment,subject,age,gender,height_cm,weight_kg,dominant_side,ultrasound_side,primary_activity,primary_dance_genre,activity_description,training_description,current_training_volume,category_7tier,category
+1,1,24,F,163,50,Right,Left,Tennis,,"Tennis. Exercises daily (running, tennis, jumprope)","2 years until 24 years ago, N/A",,Beginner,nonexpert
+1,2,27,F,160,48,Right,Right,Gym,,Exercises regularly (gym),,,Beginner,nonexpert_discard_imurange
+1,3,19,M,185,68,Right,Right,Rowing,,Varsity rowing. Youth swimming and squash,,,Varsity,unclassified
+1,4,27,F,163,55,Right,Left,Running,,Running (5mi/wk). Ran marathon 5 years ago,,,Beginner,nonexpert
+1,5,29,M,173,68,Right,Right,Running,,Running track / CC in college (~7+ years ago),,,Beginner,nonexpert
+1,6,25,F,165,60,Right,Left,Dance,Ballroom,Ballroom dancing (3x/wk). Danced for 18 years,"5 years until 0 years ago, Local 3 years ago",,Intermediate,unclassified
+1,7,21,M,180,82,Right,Right,Volleyball,,Volleyball. Played volleyball for 8 years,"8 years until 0 years ago, Regional 1 year ago",,Intermediate,unclassified
+1,8,22,M,173,77,Right,Right,Weighttrain,,"Weighttrain, running. Played soccer for 15 years","13 years until 6 years ago, State 10 years ago",,Beginner,nonexpert
+1,9,23,M,183,84,Left,Left,,,10+ years on/off with sport,"9 years until 3 years ago, State 6 years ago",,Beginner,nonexpert
+1,10,28,F,165,64,Right,Left,Running,,"Marathons, triathlons. Ball sports in high school",,,Beginner,nonexpert
+1,11,21,F,173,67,Right,Left,Volleyball,,"Volleyball for 10 years, swam before that","12 years until 0 years ago, National 1 year ago",,National,expert
+1,12,20,F,165,48,Right,Right,Badminton,,No much. Badmitton and martial arts growing up,"6 years until 10 years ago, N/A",,Beginner,nonexpert
+1,13,21,F,157,49,Right,Left,Volleyball,,Plays volleyball 1x/wk,"4 years until 9 years ago, Regional 9 years ago",,Beginner,unclassified
+1,14,22,M,183,70,Right,Right,Volleyball,,Intramural and club volleyball. Taekwando when younger,"8 years until 10 years ago, Regional 11 years ago",,Beginner,unclassified
+1,15,32,F,163,64,Right,Right,Gym,,"Everyday workouts. Figure skating, snowboarding, running experience",5 years until 15 years ago,,Beginner,nonexpert
+1,16,34,M,180,76,Right,Left,Dance,,Dance 2x/wk. Runs ocasionally,,,Intermediate,unclassified
+1,17,21,F,170,66,Right,Left,Gym,,Exercises regularly,N/A,,Beginner,nonexpert
+1,18,20,M,183,84,Right,Right,Gym,,"Resistance train 5/wk, long-distance 1/wk",4 years until 3 years ago,,Beginner,nonexpert
+1,19,22,M,180,68,Left,Left,,,"Ocasional athletic activity. Backpacking, cycling, tennis","2 years until 5 years ago, Local 5 years ago",,Beginner,nonexpert
+1,20,19,F,183,82,Right,Right,Volleyball,,Volleyball 8 years until last Nov,,,Intermediate,unclassified_discard_palmmovement
+2,1,47,M,170,57,Right,Left,Taichi,,Martial arts. Tai chi.,42 years until 0 years ago. 36 years until 0 years ago. Trains approx. 2h/day,14,Intermediate,unclassified
+2,2,24,F,168,57,Right,Right,Dance,Latin,Ballroom dancing.,7 years until 0 years ago.,,Intermediate,unclassified
+2,3,40,M,185,79,Right,Right,Dance,Ballroom,Ballroom dancing. Rock climbing.,18 years on and off. 6 years,,National,expert
+2,4,46,M,152,82,Right,Right,Squash,,Professional squash. Former World #1 champion.,18 years for 0 years ago. World tournaments.,,Olympian,expert
+2,5,30,M,173,61,Right,Right,Dance,HipHop,Ballroom dancing. Hip-hop dancing.,8 years. 6 years. Competitive dancer.,,National,expert
+2,6,35,F,174,61,Right,Left,Dance,Ballroom,Ballroom dancing. Rock climbing.,Competitive. Hobby.,,National,expert
+2,7,32,F,165,54,Right,Left,Dance,Latin,Feldenkrais practitioner. Ballroom dancing.,5 years from 0 years ago. 12 years from 0 years ago. Competed at USA Nationals in Amature Latin.,,National,expert
+2,8,31,O,185,68,Right,Left,Dance,Contemporary,Contemporary dancer and performance artist.,11 years from 0 years ago. Rehearsing aprox. 2x/month and running weekly.,,Varsity,unclassified
+2,9,23,O,185,80,Right,Left,Dance,Modern,Modern dance and ballet. Contemporary dance.,9 years. 6 years. Trains 6 times a week (don't know exact time). Performs once every 3 months.,,Varsity,unclassified
+2,10,19,F,175,66,Right,Right,Dance,Modern,Classical ballet. Hip-hop. Track and field. Recreational boxing.,15 years. 2 years. 2 years. 2 years. Trains 10 h/week. Performs several times a semester.,10,National,expert
+2,11,29,F,160,50,Right,Left,Dance,Bharatnatyam,Classical dance. Lifting.,23 years (aprox. 10-20 h/week). Trains 20hr/week. Performs 2 times a month.,20,National,expert
+2,12,18,M,178,64,Right,Right,Dance,Ballet,Ballet.,10 years until 0 years ago. Trains approx. 5-6h a day (30h a week). Performs every other month.,30,Varsity,unclassified
+2,13,18,F,163,49,Left,Left,Dance,Ballet,Ballet.,14 years until 0 years ago. Trains approx. 5-6h a day (30h a week). Performs every other month.,30,National,expert
+2,14,21,F,163,57,Right,Right,Dance,,Dance.,17 years until 0 years ago. Currently BFA Student at Boston Conservatory. Trains 20h/week. Performs around 2 per semester.,20,Varsity,unclassified
+2,15,25,M,178,81,Left,Left,Dance,TheaterJazz,Contemporany. Jazz. Ballet.,Professional level. Broadway show dancer. Trained everyday. Performed 5 times a week (2 years ago).,,National,expert
+2,16,21,F,157,54,Right,Right,Dance,,Dance.,18 years until 0 years ago. Several sports at college. Training 30 h/week. Performs at least twice a year.,30,Varsity,unclassified_discard_droppedsamples
+2,162,23,F,168,56,Right,Right,Dance,,Dance.,18 years until 0 years ago. Ran track in grades 6 to 8. Training 35+ h/week. Performs about 5 times per year.,35,Varsity,unclassified_discard_telemed
+2,17,21,F,168,61,Right,Right,Dance,Modern,"Ballet, modern, and choreographing.",10 years until 0 years ago. Played lacrosse and hockey. Trains 40h/week. Performs around 1/month.,40,Varsity,unclassified_discard_droppedsamples
+2,18,21,F,165,59,Right,Left,Dance,,Dance.,18 years until 3 years ago. Recreational sports after. Training 2 h/week. Rarely performs.,2,Varsity,unclassified
+2,19,21,F,163,68,Right,Right,Dance,,"Dance. Running, soccer, softball, and hockey (recreational).",16 years. Training 11 h in class + 5 h rehearsal or solo per week. Performs 5-7 times/year,16,Varsity,unclassified
+2,20,29,F,163,54,Left,Left,Dance,HipHop,Fencing. Dance. ,Varsity. Varsity. Competitive dance teams throughout college and adulthood. Training 4-6 h/week (currently). Performs in front of people once every 2-3 months,5,Varsity,unclassified_discard_droppedsamples
+2,21,23,F,163,68,Left,Left,Soccer,,"Soccer, nordic skiing, volleyball & tracking. Sailing",High school (5 years ago at least). Varsity at Tufsts (5 years ago) not anymore (quited after 1st year).,,Beginner,nonexpert_discard_probeposition
+2,22,23,F,157,62,Right,Right,Tennis,,"Tennis, soccer, softball, volleyball, basketball, dance, recreationally.","Not specified, last one over ~15 years (last time more than 10 years ago).",,Beginner,nonexpert_discard_probeposition
+2,23,27,F,168,68,Right,Right,Running,,Experience in sport is limited to leisure and for health reasons. Mainly running and weightlifting ,"Not specified. Over last 8 years, around twice a week.",,Beginner,nonexpert_discard_probeposition
+2,24,52,F,168,64,Neither,Left,Dance,Ballroom,"Danced for 50 yrs, 40 extensively. Also experience in soccer, badminton, and martial arts.",50 years until 0 years ago.,4-5 hrs per day,Olympian,expert_discard_injury
+2,25,27,F,170,60,Right,Right,Rowing,,"Captain of women's lightweight crew team, also experience in ballet, figure skating as a child. Cross training by weights, cycling.","12 years until 0 years ago, International 1 year ago.",,National,expert

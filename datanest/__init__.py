@@ -25,8 +25,8 @@ from typing import Any, Hashable, MutableMapping, Union, Callable
 import numpy as np
 import pandas as pd
 
-__version__ = "1.0.0"
-__all__ = ["Database"]
+__version__ = "1.1.0"
+__all__ = ["Database", "DatabaseContainer"]
 
 
 class Database:
@@ -313,8 +313,9 @@ class DatabaseContainer:
     Within each container, there can only be one top-level database, and this should be added first.
     Each parent database can have multiple child databases, and each child in turn can be a parent to other databases.
 
-    TODO:
+    TODO (deferred to 1.2.0):
         Make a plan for column names that conflict with special cases of keywords, i.e. <column_name>_lim / _has / _any.
+        Likely resolution: explicit collision detection at construction time (warn or raise on reserved-suffix collisions).
     """
 
     def __init__(self) -> None:
