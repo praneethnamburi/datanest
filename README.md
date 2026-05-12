@@ -63,6 +63,33 @@ db.heart_rate(age_lim=(50, 60))
 db.heart_rate(notes_has='interesting')
 ```
 
+### Payload types — anything goes
+
+The value side of `add_data_field` is unconstrained: datanest does not
+inspect the objects you attach, only the keys that index them. So a
+payload dict can hold NumPy arrays, images, custom dataclasses,
+[`pysampled.Data`][pysampled] signals — anything that makes sense for
+your project.
+
+```python
+import numpy as np
+
+db = datanest.get_example_database()
+db.add_data_field(
+    "eeg",
+    {pid: np.random.randn(1000) for pid in db()["participant_id"]},
+    "participant_id",
+)
+db.eeg(age_lim=(50, 60))   # {participant_id: ndarray} for the matching rows
+```
+
+In the lab where datanest originated, time-series payloads are
+typically [`pysampled.Data`][pysampled] objects, but this is a *use
+convention*, not a hard dependency — `datanest` does not import
+`pysampled` and works with whatever payload type you choose.
+
+[pysampled]: https://github.com/praneethnamburi/pysampled
+
 ### Hierarchical data: `DatabaseContainer`
 
 When metadata lives at multiple levels (e.g. *subject* → *trial* → *action*), wrap a set of `Database` instances in a `DatabaseContainer`. Each level is added with a key-derivation function that maps a child id to its parent id. The container provides the same keyword-argument query syntax as `Database`, resolving the right level automatically.

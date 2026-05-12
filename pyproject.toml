@@ -28,6 +28,12 @@ dependencies = [
   "dill",
 ]
 
+[project.optional-dependencies]
+test = [
+  "pytest",
+  "openpyxl",  # exercises Database's Excel I/O code path in tests
+]
+
 [project.urls]
 Homepage = "https://github.com/praneethnamburi/datanest"
 Documentation = "https://datanest.readthedocs.io"

@@ -3,11 +3,9 @@
 The fixtures under ``tests/fixtures/wobble/`` are the same metadata CSVs that
 ``pn-projects/projects/wobble`` uses, so the test exercises the real id-tuple
 patterns (subject_id, trial_id, action_id) without paying wobble's full
-``__init__`` cost. Payload signals are synthesized (a small ``pysampled.Data``
-per id) so the test stays self-contained.
-
-``pysampled`` is a test-only dependency — ``datanest`` itself stays
-modality-agnostic.
+``__init__`` cost. Payloads are plain NumPy arrays — ``add_data_field`` is
+modality-agnostic by design, so the synthesized payload type does not affect
+what's under test.
 """
 from pathlib import Path
 
@@ -51,17 +49,16 @@ def _load_action_df() -> pd.DataFrame:
     return df
 
 
-def _make_synthetic_signals(ids, n_samples: int = 100, sr: int = 100):
-    """Generate one tiny ``pysampled.Data`` signal per id.
+def _make_synthetic_signals(ids, n_samples: int = 100):
+    """Generate one tiny NumPy array per id.
 
     Keyed by ``id`` (tuple) so it can be attached via ``add_data_field``.
+    The payload type is intentionally a plain ``np.ndarray`` — ``datanest``
+    is modality-agnostic, so the array stands in for any object a real
+    project would attach (``pysampled.Data``, images, custom classes, ...).
     """
-    import pysampled
     rng = np.random.default_rng(seed=0)
-    return {
-        _id: pysampled.Data(rng.standard_normal(n_samples), sr=sr)
-        for _id in ids
-    }
+    return {_id: rng.standard_normal(n_samples) for _id in ids}
 
 
 # ---------------------------------------------------------------------------
