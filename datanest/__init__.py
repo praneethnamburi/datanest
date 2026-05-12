@@ -25,8 +25,15 @@ from typing import Any, Hashable, MutableMapping, Union, Callable
 import numpy as np
 import pandas as pd
 
+from datanest.cache import cache_me_if_you_can, cache_me_if_you_can_incremental
+
 __version__ = "1.1.0"
-__all__ = ["Database", "DatabaseContainer"]
+__all__ = [
+    "Database",
+    "DatabaseContainer",
+    "cache_me_if_you_can",
+    "cache_me_if_you_can_incremental",
+]
 
 
 class Database:
