@@ -19,21 +19,129 @@ from __future__ import annotations
 import os
 import re
 import functools
+import warnings
 from pathlib import Path
-from typing import Any, Hashable, MutableMapping, Union, Callable
+from typing import Any, Hashable, Iterable, MutableMapping, Union, Callable
 
 import numpy as np
 import pandas as pd
 
 from datanest.cache import cache_me_if_you_can, cache_me_if_you_can_incremental
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __all__ = [
     "Database",
     "DatabaseContainer",
+    "ReservedSuffixCollisionWarning",
     "cache_me_if_you_can",
     "cache_me_if_you_can_incremental",
 ]
+
+
+_RESERVED_SUFFIXES: tuple[str, ...] = ("_lim", "_has", "_any")
+_RENAME_MAP: dict[str, str] = {"_lim": "_limits", "_has": "_contains", "_any": "_options"}
+_ON_RESERVED_SUFFIX_VALUES = ("warn", "raise", "ignore", "rename")
+
+
+class ReservedSuffixCollisionWarning(UserWarning):
+    """Issued when a DataFrame column name collides with a reserved query suffix.
+
+    See :py:meth:`Database.__call__` for the suffix-reservation rule.
+    """
+
+
+def _find_reserved_suffix_collisions(
+    columns: Iterable[str],
+) -> list[tuple[str, str, str]]:
+    """List ambiguous column pairs caused by reserved query suffixes.
+
+    A collision exists when both ``<base>`` and ``<base><suffix>`` are present
+    in ``columns``, with ``<suffix>`` in :py:data:`_RESERVED_SUFFIXES`. In that
+    case ``Database.__call__`` cannot disambiguate the kwarg
+    ``<base><suffix>=v`` between the suffix branch (range / set / substring
+    predicate against ``<base>``) and a literal-column equality against
+    ``<base><suffix>``.
+
+    Returns:
+        list of ``(suffixed_col, base_col, suffix)`` triples, in column order.
+    """
+    column_set = set(columns)
+    collisions: list[tuple[str, str, str]] = []
+    for col in columns:
+        for suffix in _RESERVED_SUFFIXES:
+            if col.endswith(suffix):
+                base = col[: -len(suffix)]
+                if base and base in column_set:
+                    collisions.append((col, base, suffix))
+    return collisions
+
+
+def _resolve_reserved_suffix_collisions(
+    data: pd.DataFrame,
+    on_reserved_suffix: str,
+    *,
+    stacklevel: int = 3,
+) -> pd.DataFrame:
+    """Apply the ``on_reserved_suffix`` policy and return the resulting DataFrame.
+
+    ``on_reserved_suffix`` is one of:
+
+    - ``"warn"`` (default): emit :py:class:`ReservedSuffixCollisionWarning`.
+    - ``"raise"``: raise :py:class:`ValueError`.
+    - ``"ignore"``: silence the check.
+    - ``"rename"``: rename each colliding column via :py:data:`_RENAME_MAP`
+      (``_lim`` → ``_limits``, ``_has`` → ``_contains``, ``_any`` →
+      ``_options``) and emit a warning describing the renames. Raises if a
+      rename target already exists as a column.
+
+    Returns the (possibly renamed) DataFrame.
+    """
+    if on_reserved_suffix not in _ON_RESERVED_SUFFIX_VALUES:
+        raise ValueError(
+            f"on_reserved_suffix must be one of {_ON_RESERVED_SUFFIX_VALUES}, "
+            f"got {on_reserved_suffix!r}."
+        )
+    if on_reserved_suffix == "ignore":
+        return data
+    collisions = _find_reserved_suffix_collisions(data.columns)
+    if not collisions:
+        return data
+    pairs = ", ".join(
+        f"{base!r} + {suffixed!r}" for suffixed, base, _ in collisions
+    )
+    if on_reserved_suffix == "rename":
+        column_set = set(data.columns)
+        rename_map: dict[str, str] = {}
+        for suffixed, base, suffix in collisions:
+            new_name = base + _RENAME_MAP[suffix]
+            if new_name in column_set or new_name in rename_map.values():
+                raise ValueError(
+                    f"Cannot auto-rename {suffixed!r} → {new_name!r}: target "
+                    f"column already exists. Rename the source column manually."
+                )
+            rename_map[suffixed] = new_name
+        rename_msg = ", ".join(f"{old!r} → {new!r}" for old, new in rename_map.items())
+        warnings.warn(
+            f"Auto-renamed columns colliding with reserved query suffixes "
+            f"({'/'.join(_RESERVED_SUFFIXES)}): {rename_msg}.",
+            ReservedSuffixCollisionWarning,
+            stacklevel=stacklevel,
+        )
+        return data.rename(columns=rename_map)
+    msg = (
+        f"Column name(s) collide with reserved query suffixes "
+        f"({'/'.join(_RESERVED_SUFFIXES)}): {pairs}. Queries like "
+        f"db(<base>{_RESERVED_SUFFIXES[0]}=...) trigger the suffix branch and "
+        f"shadow literal-column equality on the suffixed column. To fix, "
+        f"rename the conflicting column at the source (CSV / DataFrame), or "
+        f"pass on_reserved_suffix='rename' to auto-rename "
+        f"({', '.join(f'{s}→{r}' for s, r in _RENAME_MAP.items())}). "
+        f"To silence without fixing, pass on_reserved_suffix='ignore'."
+    )
+    if on_reserved_suffix == "raise":
+        raise ValueError(msg)
+    warnings.warn(msg, ReservedSuffixCollisionWarning, stacklevel=stacklevel)
+    return data
 
 
 class Database:
@@ -48,6 +156,18 @@ class Database:
         data (Union[pd.DataFrame, str, Path]):
             - (str) Path to a CSV or Excel file. It is read as a pandas DataFrame. Make sure openpyxl is installed when working with excel files.
             - (pd.DataFrame) Pass an already loaded pandas DataFrame.
+        on_reserved_suffix (str, keyword-only): How to react when a column name
+            collides with a reserved query suffix (``_lim`` / ``_has`` / ``_any``)
+            — see :py:meth:`Database.__call__`. One of ``"warn"`` (default —
+            issue a :py:class:`ReservedSuffixCollisionWarning`), ``"raise"``
+            (raise ``ValueError``), ``"ignore"`` (silence the check), or
+            ``"rename"`` (auto-rename colliding columns via the mapping
+            ``_lim`` → ``_limits``, ``_has`` → ``_contains``, ``_any`` →
+            ``_options``; raises if a rename target already exists). A
+            collision exists only when *both* ``<base>`` and ``<base><suffix>``
+            are present as columns, in which case kwargs like
+            ``db(<base><suffix>=...)`` are ambiguous between the suffix
+            predicate and literal equality on the suffixed column.
 
     Attributes:
         data_fields (list): Names of data dictionaries added using the :py:meth:`Database.add_data_field` method.
@@ -72,7 +192,12 @@ class Database:
             db.heart_rate(notes_has='interesting')
     """
 
-    def __init__(self, data: Union[pd.DataFrame, str, Path]):
+    def __init__(
+        self,
+        data: Union[pd.DataFrame, str, Path],
+        *,
+        on_reserved_suffix: str = "warn",
+    ):
         if isinstance(data, pd.DataFrame):
             self._data = data
         elif isinstance(data, (str, Path)):
@@ -90,6 +215,10 @@ class Database:
         self.data_fields = []
         self.data_key_names = {}
 
+        self._data = _resolve_reserved_suffix_collisions(
+            self._data, on_reserved_suffix
+        )
+
     def __call__(self, *args, **kwargs) -> pd.DataFrame:
         """Select rows from the metadata in the DataFrame.
         It provides an intuitive python kwargs (keyword arguments) based syntax.
@@ -100,6 +229,15 @@ class Database:
         - The *any* suffix is useful to to specify *or* conditions, for example, `participant_id_any=(1,3)` retrieves rows whose participant_id matches either 1 or 3
         - The *lim* suffix is useful to specify limits, for example, `age_lim=(40,60)` retrieves rows where age is between 40 and 60, both included.
         - The *has* suffix is useful when working with entries that have strings, such as `notes_has='interesting'`, which will retrieve all rows where the word *interesting* is present in the notes entry.
+
+        The suffixes ``_lim`` / ``_has`` / ``_any`` are *reserved*: if a column
+        named ``<base>`` exists alongside another named ``<base><suffix>``, the
+        kwarg ``<base><suffix>=v`` is ambiguous and the suffix branch wins.
+        :py:class:`Database` flags this at construction time — see
+        ``on_reserved_suffix`` on :py:class:`Database`. Fix by renaming the
+        column at the source, or by passing ``on_reserved_suffix='rename'``
+        to auto-rename to the readable form (``_lim`` → ``_limits``,
+        ``_has`` → ``_contains``, ``_any`` → ``_options``).
 
         Arguments can be any column name of the underlying DataFrame containing boolean values.
         For example, passing an argument `'surgery_performed'` is equivalent to passing a keyword argument `surgery_performed=True`.
@@ -320,9 +458,11 @@ class DatabaseContainer:
     Within each container, there can only be one top-level database, and this should be added first.
     Each parent database can have multiple child databases, and each child in turn can be a parent to other databases.
 
-    TODO (deferred to 1.2.0):
-        Make a plan for column names that conflict with special cases of keywords, i.e. <column_name>_lim / _has / _any.
-        Likely resolution: explicit collision detection at construction time (warn or raise on reserved-suffix collisions).
+    Reserved-suffix collisions (``_lim`` / ``_has`` / ``_any`` shadowing real
+    column names) are detected at the :py:class:`Database` boundary; see
+    :py:meth:`Database.__call__`. The container does not re-check the
+    post-rename column space — overlapping-column renames in :py:meth:`add`
+    almost never produce new collisions in practice.
     """
 
     def __init__(self) -> None:

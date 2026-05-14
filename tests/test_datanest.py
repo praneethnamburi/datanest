@@ -195,6 +195,104 @@ def test_database_get(db, example_csv_file, capsys):
     assert len(x) == 51
 
 
+# ---------------------------------------------------------------------------
+# Reserved-suffix collision detection (1.2.0)
+# ---------------------------------------------------------------------------
+def _df_with_collision():
+    return pd.DataFrame(
+        {
+            "age": [20, 30, 40],
+            "age_lim": [1, 2, 3],
+            "notes": ["a", "b", "c"],
+        }
+    )
+
+
+def test_warns_on_reserved_suffix_collision():
+    with pytest.warns(datanest.ReservedSuffixCollisionWarning):
+        datanest.Database(_df_with_collision())
+
+
+def test_raises_on_reserved_suffix_collision_strict():
+    with pytest.raises(ValueError, match="reserved query suffixes"):
+        datanest.Database(_df_with_collision(), on_reserved_suffix="raise")
+
+
+def test_ignore_silences_reserved_suffix_check(recwarn):
+    datanest.Database(_df_with_collision(), on_reserved_suffix="ignore")
+    assert not any(
+        issubclass(w.category, datanest.ReservedSuffixCollisionWarning) for w in recwarn
+    )
+
+
+def test_no_warning_when_only_suffixed_column_present(recwarn):
+    # `xyz_has` alone (no `xyz`) is not a collision — the suffix branch in
+    # __call__ never fires because the would-be base isn't in the DataFrame.
+    df = pd.DataFrame({"xyz_has": [1, 2], "notes": ["a", "b"]})
+    datanest.Database(df)
+    assert not any(
+        issubclass(w.category, datanest.ReservedSuffixCollisionWarning) for w in recwarn
+    )
+
+
+def test_invalid_on_reserved_suffix_value():
+    with pytest.raises(ValueError, match="on_reserved_suffix must be one of"):
+        datanest.Database(_df_with_collision(), on_reserved_suffix="bogus")
+
+
+def test_rename_mode_renames_lim():
+    df = _df_with_collision()
+    with pytest.warns(datanest.ReservedSuffixCollisionWarning, match="Auto-renamed"):
+        db = datanest.Database(df, on_reserved_suffix="rename")
+    cols = list(db().columns)
+    assert "age_lim" not in cols
+    assert "age_limits" in cols
+    # Original user DataFrame should not be mutated.
+    assert "age_lim" in df.columns
+
+
+def test_rename_mode_covers_all_three_suffixes():
+    df = pd.DataFrame(
+        {
+            "age": [1, 2],
+            "age_lim": [10, 20],
+            "notes": ["x", "y"],
+            "notes_has": ["a", "b"],
+            "level": [3, 4],
+            "level_any": [5, 6],
+        }
+    )
+    with pytest.warns(datanest.ReservedSuffixCollisionWarning):
+        db = datanest.Database(df, on_reserved_suffix="rename")
+    cols = set(db().columns)
+    assert {"age_limits", "notes_contains", "level_options"} <= cols
+    assert {"age_lim", "notes_has", "level_any"}.isdisjoint(cols)
+
+
+def test_rename_mode_query_uses_suffix_branch_after_rename():
+    # Before rename: age_lim shadows the suffix branch. After rename, the
+    # suffix branch on `age` works normally.
+    df = _df_with_collision()
+    with pytest.warns(datanest.ReservedSuffixCollisionWarning):
+        db = datanest.Database(df, on_reserved_suffix="rename")
+    result = db(age_lim=(25, 35))
+    assert len(result) == 1
+    assert result.iloc[0]["age"] == 30
+
+
+def test_rename_mode_raises_on_target_collision():
+    # If the rename target already exists, refuse to clobber.
+    df = pd.DataFrame(
+        {
+            "age": [1, 2],
+            "age_lim": [10, 20],
+            "age_limits": [100, 200],
+        }
+    )
+    with pytest.raises(ValueError, match="target column already exists"):
+        datanest.Database(df, on_reserved_suffix="rename")
+
+
 def test_database_records(db, example_csv_file):
     r = db.records()
     assert len(r) == 100

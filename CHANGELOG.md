@@ -1,6 +1,16 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-05-14
+
+### Added
+- `Database.__init__` now detects reserved-suffix column collisions. A collision exists when both `<base>` and `<base><suffix>` are present as columns, with `<suffix>` in `(_lim, _has, _any)` — in that case the kwarg `<base><suffix>=v` in `Database.__call__` is ambiguous between the suffix predicate (range / set / substring) and a literal-column equality. Configurable via the new keyword-only `on_reserved_suffix` parameter: `"warn"` (default — emits a `ReservedSuffixCollisionWarning`), `"raise"` (raises `ValueError`), `"ignore"`, or `"rename"` (auto-rename the colliding column via `_lim` → `_limits`, `_has` → `_contains`, `_any` → `_options`; raises if the rename target already exists). The warning message in `"warn"` mode points users to both fixes (rename the source manually, or pass `on_reserved_suffix='rename'`). Resolves the open question deferred from 1.1.0.
+- `ReservedSuffixCollisionWarning` (subclass of `UserWarning`) — exported so callers can `warnings.filterwarnings(...)` against it specifically.
+
+### Notes
+- Non-breaking. Existing `Database(df)` calls keep working; the new check only fires when the DataFrame has both a `<base>` and a `<base><suffix>` column. `DatabaseContainer` does not re-check after its overlapping-column rename — those renames almost never produce new reserved-suffix collisions in practice.
+- Rename mode mutates `self._data` (via `DataFrame.rename(columns=...)`, which returns a new frame) — the user's original DataFrame is not mutated in place.
+
 ## [1.1.0] - 2026-05-12
 
 ### Added
@@ -24,7 +34,7 @@ All notable changes to this project will be documented in this file.
 
 ### Deferred to 1.2.0
 - `break_signals_into_actions` stays in `immersionlab` (couples to pysampled / event semantics — does not belong in datanest's modality-agnostic core). `immersionlab.DatabaseContainer` keeps the method via a thin subclass.
-- Kwarg-suffix collision detection (`_lim` / `_has` / `_any` reservations vs. real column names) — TODO at `datanest/__init__.py` `DatabaseContainer` docstring.
+- ~~Kwarg-suffix collision detection~~ — shipped in 1.2.0; see entry above.
 
 
 ## [1.0.0] - 2024-02-04
