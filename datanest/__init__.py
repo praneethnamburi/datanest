@@ -28,14 +28,35 @@ import pandas as pd
 
 from datanest.cache import cache_me_if_you_can, cache_me_if_you_can_incremental
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __all__ = [
     "Database",
     "DatabaseContainer",
+    "Mapping",
     "ReservedSuffixCollisionWarning",
     "cache_me_if_you_can",
     "cache_me_if_you_can_incremental",
 ]
+
+
+class Mapping:
+    """Create a dictionary map between any two columns of a dataframe."""
+
+    def __init__(self, df: pd.DataFrame):
+        self.df = df
+
+    def __call__(
+        self,
+        left_col_name: str,
+        right_col_name: str,
+        row_selector: Callable[[Any, Any], bool] | None = None,
+    ) -> dict:
+        if row_selector is None:
+            row_selector = lambda k, v: True
+        ret = pd.Series(
+            self.df[right_col_name].values, index=self.df[left_col_name]
+        ).to_dict()
+        return {k: v for k, v in ret.items() if row_selector(k, v)}
 
 
 _RESERVED_SUFFIXES: tuple[str, ...] = ("_lim", "_has", "_any")

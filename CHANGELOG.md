@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - unreleased
+
+### Added
+- `Mapping` — small DataFrame utility that builds a `dict` mapping one column's values to another's, with an optional `(key, value) -> bool` row-selector. Relocated from `pntools.Mapping` as part of the cluster-4 retirement pass (six portfolio consumers across `pn-projects/projects/wobble/`, `gaitmusic/`, and `immersionToolbox/immersionlab/`). Datanest is the natural Layer-1 home because the helper is a pure pandas-DataFrame col1 → col2 lookup, and both consumer clusters already depend on datanest.
+
 ## [1.2.0] - 2026-05-14
 
 ### Added
